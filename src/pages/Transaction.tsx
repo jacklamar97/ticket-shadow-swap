@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, MapPin, Ticket, AlertTriangle } from "lucide-react";
-import { mockTickets } from "@/data/mockTickets";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useCreateTransaction } from "@/hooks/useTickets";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -13,10 +17,59 @@ const Transaction = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [buyerEmail, setBuyerEmail] = useState("");
+  const [buyerMessage, setBuyerMessage] = useState("");
   
-  const ticket = mockTickets.find(t => t.id === id);
+  const { user } = useAuth();
+  const createTransaction = useCreateTransaction();
+  const { toast } = useToast();
   
-  if (!ticket) {
+  const { data: ticket, isLoading, error } = useQuery({
+    queryKey: ['ticket', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('id', id)
+        .eq('is_available', true)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
+            <p className="mb-4">You need to be signed in to purchase tickets.</p>
+            <Button onClick={() => navigate("/auth")}>Sign In</Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+  
+  if (error || !ticket) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -33,6 +86,30 @@ const Transaction = () => {
 
   const handlePaymentConfirmation = () => {
     setShowConfirmation(true);
+  };
+
+  const handleSubmitTransaction = async () => {
+    try {
+      await createTransaction.mutateAsync({
+        ticket_id: ticket.id,
+        buyer_email: buyerEmail,
+        buyer_message: buyerMessage,
+        seller_id: ticket.user_id,
+      });
+
+      toast({
+        title: "Success",
+        description: "Your contact information has been sent to the seller!",
+      });
+
+      navigate(`/confirmation/${ticket.id}`);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const PaymentMethodBadge = ({ method, handle }: { method: string; handle: string }) => (
@@ -77,6 +154,8 @@ const Transaction = () => {
                     <input 
                       type="email" 
                       placeholder="your@email.com"
+                      value={buyerEmail}
+                      onChange={(e) => setBuyerEmail(e.target.value)}
                       className="w-full p-3 bg-background border border-border rounded-lg focus:border-primary focus:outline-none"
                       required
                     />
@@ -87,16 +166,19 @@ const Transaction = () => {
                     <textarea 
                       placeholder="Hi! I'm interested in your tickets for..."
                       rows={3}
+                      value={buyerMessage}
+                      onChange={(e) => setBuyerMessage(e.target.value)}
                       className="w-full p-3 bg-background border border-border rounded-lg focus:border-primary focus:outline-none resize-none"
                     />
                   </div>
                 </div>
                 
                 <Button 
-                  onClick={() => navigate(`/confirmation/${ticket.id}`)}
+                  onClick={handleSubmitTransaction}
+                  disabled={!buyerEmail || createTransaction.isPending}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 font-medium"
                 >
-                  Send Contact Info to Seller
+                  {createTransaction.isPending ? "Sending..." : "Send Contact Info to Seller"}
                 </Button>
               </CardContent>
             </Card>
@@ -126,7 +208,7 @@ const Transaction = () => {
             {/* Ticket Details */}
             <Card className="animate-fade-in">
               <CardHeader>
-                <CardTitle className="text-xl">{ticket.eventTitle}</CardTitle>
+                <CardTitle className="text-xl">{ticket.event_title}</CardTitle>
                 <p className="gradient-text font-medium text-lg">{ticket.artist}</p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -137,16 +219,20 @@ const Transaction = () => {
                 
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Calendar className="h-4 w-4 text-primary" />
-                  <span>{ticket.date} at {ticket.time}</span>
+                  <span>{new Date(ticket.date).toLocaleDateString()} at {ticket.time}</span>
                 </div>
                 
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <Ticket className="h-4 w-4 text-primary" />
-                  <span>Section {ticket.section}, Row {ticket.row}, Seat {ticket.seat}</span>
+                  <span>
+                    {ticket.section && `Section ${ticket.section}, `}
+                    {ticket.row && `Row ${ticket.row}, `}
+                    {ticket.seat && `Seat ${ticket.seat}`}
+                  </span>
                 </div>
 
                 <div className="pt-4 border-t border-border/40">
-                  <Badge variant="secondary" className="mb-2">{ticket.ticketType}</Badge>
+                  <Badge variant="secondary" className="mb-2">{ticket.ticket_type}</Badge>
                   <div className="text-3xl font-bold gradient-text">${ticket.price}</div>
                 </div>
               </CardContent>
@@ -171,16 +257,16 @@ const Transaction = () => {
                 <div className="space-y-3">
                   <h3 className="font-medium text-card-foreground">Seller's Payment Methods:</h3>
                   
-                  {ticket.paymentMethods.paypal && (
-                    <PaymentMethodBadge method="PayPal" handle={ticket.paymentMethods.paypal} />
+                  {ticket.payment_handles?.paypal && (
+                    <PaymentMethodBadge method="PayPal" handle={ticket.payment_handles.paypal} />
                   )}
                   
-                  {ticket.paymentMethods.venmo && (
-                    <PaymentMethodBadge method="Venmo" handle={ticket.paymentMethods.venmo} />
+                  {ticket.payment_handles?.venmo && (
+                    <PaymentMethodBadge method="Venmo" handle={ticket.payment_handles.venmo} />
                   )}
                   
-                  {ticket.paymentMethods.cashapp && (
-                    <PaymentMethodBadge method="Cash App" handle={ticket.paymentMethods.cashapp} />
+                  {ticket.payment_handles?.cashapp && (
+                    <PaymentMethodBadge method="Cash App" handle={ticket.payment_handles.cashapp} />
                   )}
                 </div>
 

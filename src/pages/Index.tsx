@@ -5,16 +5,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import TicketCard from "@/components/TicketCard";
 import FilterBar from "@/components/FilterBar";
-import { mockTickets } from "@/data/mockTickets";
+import { useTickets } from "@/hooks/useTickets";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState("All Cities");
+  
+  const { data: tickets = [], isLoading, error } = useTickets();
+  const { user } = useAuth();
 
-  const filteredTickets = mockTickets.filter(ticket => {
+  const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = 
-      ticket.eventTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.event_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.artist.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.venue.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -24,8 +28,46 @@ const Index = () => {
   });
 
   const handleGetTicket = (ticketId: string) => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     navigate(`/transaction/${ticketId}`);
   };
+
+  const formatTicketData = (ticket: any) => ({
+    id: ticket.id,
+    eventTitle: ticket.event_title,
+    artist: ticket.artist,
+    venue: ticket.venue,
+    date: new Date(ticket.date).toLocaleDateString(),
+    time: ticket.time,
+    section: ticket.section || 'N/A',
+    row: ticket.row || 'N/A', 
+    seat: ticket.seat || 'N/A',
+    ticketType: ticket.ticket_type,
+    price: ticket.price,
+    paymentMethods: {
+      paypal: ticket.payment_handles?.paypal,
+      venmo: ticket.payment_handles?.venmo,
+      cashapp: ticket.payment_handles?.cashapp,
+    }
+  });
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-4">Error loading tickets</h2>
+            <p className="text-muted-foreground">Please try again later</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -57,31 +99,35 @@ const Index = () => {
           <h2 className="text-2xl font-semibold text-card-foreground">
             Available Tickets
             <span className="text-lg text-muted-foreground ml-2">
-              ({filteredTickets.length} found)
+              ({isLoading ? "Loading..." : `${filteredTickets.length} found`})
             </span>
           </h2>
         </div>
 
         {/* Ticket Grid */}
-        {filteredTickets.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="gradient-border w-fit mx-auto mb-4">
+              <div className="bg-background p-6 rounded-lg">
+                <h3 className="text-xl font-semibold mb-2">Loading tickets...</h3>
+                <p className="text-muted-foreground">
+                  Please wait while we fetch the latest tickets
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : filteredTickets.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTickets.map((ticket) => (
-              <TicketCard
-                key={ticket.id}
-                id={ticket.id}
-                eventTitle={ticket.eventTitle}
-                artist={ticket.artist}
-                venue={ticket.venue}
-                date={ticket.date}
-                time={ticket.time}
-                section={ticket.section}
-                row={ticket.row}
-                seat={ticket.seat}
-                ticketType={ticket.ticketType}
-                price={ticket.price}
-                onGetTicket={handleGetTicket}
-              />
-            ))}
+            {filteredTickets.map((ticket) => {
+              const formattedTicket = formatTicketData(ticket);
+              return (
+                <TicketCard
+                  key={ticket.id}
+                  {...formattedTicket}
+                  onGetTicket={handleGetTicket}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12">

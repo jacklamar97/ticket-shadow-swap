@@ -9,7 +9,134 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tickets: {
+        Row: {
+          artist: string
+          city: string
+          created_at: string
+          date: string
+          event_title: string
+          id: string
+          is_available: boolean | null
+          payment_handles: Json | null
+          payment_methods: Json | null
+          price: number
+          row: string | null
+          seat: string | null
+          section: string | null
+          ticket_type: string
+          time: string
+          updated_at: string
+          user_id: string
+          venue: string
+        }
+        Insert: {
+          artist: string
+          city: string
+          created_at?: string
+          date: string
+          event_title: string
+          id?: string
+          is_available?: boolean | null
+          payment_handles?: Json | null
+          payment_methods?: Json | null
+          price: number
+          row?: string | null
+          seat?: string | null
+          section?: string | null
+          ticket_type: string
+          time: string
+          updated_at?: string
+          user_id: string
+          venue: string
+        }
+        Update: {
+          artist?: string
+          city?: string
+          created_at?: string
+          date?: string
+          event_title?: string
+          id?: string
+          is_available?: boolean | null
+          payment_handles?: Json | null
+          payment_methods?: Json | null
+          price?: number
+          row?: string | null
+          seat?: string | null
+          section?: string | null
+          ticket_type?: string
+          time?: string
+          updated_at?: string
+          user_id?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          buyer_email: string
+          buyer_message: string | null
+          created_at: string
+          id: string
+          seller_id: string
+          status: string | null
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_email: string
+          buyer_message?: string | null
+          created_at?: string
+          id?: string
+          seller_id: string
+          status?: string | null
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_email?: string
+          buyer_message?: string | null
+          created_at?: string
+          id?: string
+          seller_id?: string
+          status?: string | null
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

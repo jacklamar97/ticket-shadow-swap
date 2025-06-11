@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle, Calendar, MapPin, Ticket, Home } from "lucide-react";
-import { mockTickets } from "@/data/mockTickets";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -11,9 +12,35 @@ const Confirmation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const ticket = mockTickets.find(t => t.id === id);
+  const { data: ticket, isLoading, error } = useQuery({
+    queryKey: ['ticket', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading...</h1>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
   
-  if (!ticket) {
+  if (error || !ticket) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -62,7 +89,7 @@ const Confirmation = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center space-x-2">
                     <Ticket className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{ticket.eventTitle}</span>
+                    <span className="font-medium">{ticket.event_title}</span>
                   </div>
                   
                   <div className="flex items-center space-x-2 text-muted-foreground">
@@ -77,12 +104,16 @@ const Confirmation = () => {
                   
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <Calendar className="h-4 w-4 text-primary" />
-                    <span>{ticket.date} at {ticket.time}</span>
+                    <span>{new Date(ticket.date).toLocaleDateString()} at {ticket.time}</span>
                   </div>
                   
                   <div className="flex items-center space-x-2 text-muted-foreground">
                     <span className="w-4" />
-                    <span>Section {ticket.section}, Row {ticket.row}, Seat {ticket.seat}</span>
+                    <span>
+                      {ticket.section && `Section ${ticket.section}, `}
+                      {ticket.row && `Row ${ticket.row}, `}
+                      {ticket.seat && `Seat ${ticket.seat}`}
+                    </span>
                   </div>
                   
                   <div className="flex items-center justify-between pt-2 border-t border-border/40">

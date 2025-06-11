@@ -1,13 +1,17 @@
 
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, Plus } from "lucide-react";
+import { Moon, Sun, LogOut, User } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import PostTicketModal from "./PostTicketModal";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(true);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Set initial dark mode
     document.documentElement.classList.add('dark');
   }, []);
 
@@ -15,6 +19,11 @@ const Header = () => {
     setIsDark(!isDark);
     document.documentElement.classList.toggle('dark');
     document.documentElement.classList.toggle('light');
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
   };
 
   return (
@@ -38,10 +47,27 @@ const Header = () => {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
-            <Plus className="h-4 w-4 mr-2" />
-            Post Ticket
-          </Button>
+          {user ? (
+            <>
+              <PostTicketModal />
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="border-border hover:bg-accent"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={() => navigate("/auth")}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Sign In
+            </Button>
+          )}
         </div>
       </div>
     </header>
