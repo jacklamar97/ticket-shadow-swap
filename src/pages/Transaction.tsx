@@ -112,6 +112,9 @@ const Transaction = () => {
     }
   };
 
+  // Type the payment handles properly
+  const paymentHandles = ticket.payment_handles as Record<string, string> | null;
+
   const PaymentMethodBadge = ({ method, handle }: { method: string; handle: string }) => (
     <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg border border-border/40">
       <div className="flex items-center space-x-3">
@@ -257,16 +260,16 @@ const Transaction = () => {
                 <div className="space-y-3">
                   <h3 className="font-medium text-card-foreground">Seller's Payment Methods:</h3>
                   
-                  {ticket.payment_handles?.paypal && (
-                    <PaymentMethodBadge method="PayPal" handle={ticket.payment_handles.paypal} />
+                  {paymentHandles?.paypal && (
+                    <PaymentMethodBadge method="PayPal" handle={paymentHandles.paypal} />
                   )}
                   
-                  {ticket.payment_handles?.venmo && (
-                    <PaymentMethodBadge method="Venmo" handle={ticket.payment_handles.venmo} />
+                  {paymentHandles?.venmo && (
+                    <PaymentMethodBadge method="Venmo" handle={paymentHandles.venmo} />
                   )}
                   
-                  {ticket.payment_handles?.cashapp && (
-                    <PaymentMethodBadge method="Cash App" handle={ticket.payment_handles.cashapp} />
+                  {paymentHandles?.cashapp && (
+                    <PaymentMethodBadge method="Cash App" handle={paymentHandles.cashapp} />
                   )}
                 </div>
 
