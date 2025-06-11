@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Transaction from "./pages/Transaction";
 import Confirmation from "./pages/Confirmation";
 import Auth from "./pages/Auth";
+import Events from "./pages/Events";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/events" element={<Events />} />
             <Route path="/transaction/:id" element={<Transaction />} />
             <Route path="/confirmation/:id" element={<Confirmation />} />
             <Route path="*" element={<NotFound />} />
